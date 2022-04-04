@@ -113,17 +113,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                 },
                 recognising: {
                     initial: 'noinput',
-                    exit: 'recStop',
                     on: {
-                        ASRRESULT: {
-                            actions: ['recLogResult',
-                                assign((_context, event) => {
-                                    return {
-                                        recResult: event.value
-                                    }
-                                })],
-                            target: '.match'
-                        },
                         RECOGNISED: 'idle',
                         SELECT: 'idle',
                         CLICK: '.pause'
@@ -143,8 +133,33 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                             exit: cancel('timeout')
                         },
                         inprogress: {
+                            on: {
+                                ASRRESULT: {
+                                    actions: ['recLogResult',
+                                        assign((_context, event) => {
+                                            return {
+                                                recResult: event.value
+                                            }
+                                        })],
+                                    target: 'match'
+                                },
+                            }
                         },
                         match: {
+                            on: {
+                                ASRRESULT_L2: {
+                                    actions: ['recLogResultL2',
+                                        assign((_context, event) => {
+                                            return {
+                                                recResultL2: event.value
+                                            }
+                                        })],
+                                    target: 'matchmatch'
+                                },
+                            },
+                            exit: 'recStop',
+                        },
+                        matchmatch: {
                             entry: send('RECOGNISED'),
                         },
                         pause: {
@@ -172,6 +187,10 @@ const machine = Machine<SDSContext, any, SDSEvent>({
             recLogResult: (context: SDSContext) => {
                 /* context.recResult = event.recResult; */
                 console.log('U>', context.recResult[0]["utterance"], context.recResult[0]["confidence"]);
+            },
+            recLogResultL2: (context: SDSContext) => {
+                /* context.recResult = event.recResult; */
+                console.log('U>', context.recResultL2[0]["utterance"], context.recResultL2[0]["confidence"]);
             },
             logIntent: (context: SDSContext) => {
                 /* context.nluData = event.data */
@@ -251,27 +270,23 @@ function App() {
     const [current, send] = useMachine(machine, {
         devTools: true,
         actions: {
-
-            changeColour: asEffect((context) => {
-                document.body.style.background = context.recResult[0].utterance;
-                /* console.log('Ready to receive a voice input.'); */
-            }),
-
             recStart: asEffect((context) => {
                 context.asr.start()
+                context.asrL2.start()
                 /* console.log('Ready to receive a voice input.'); */
             }),
             recStop: asEffect((context) => {
                 context.asr.abort()
+                context.asrL2.abort()
                 /* console.log('Recognition stopped.'); */
             }),
             ttsStart: asEffect((context) => {
-                let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US"><voice name="${context.voice.name}">`
+                let content = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="es-ES"><voice name="${context.voice.name}">`
                 content = content + (process.env.REACT_APP_TTS_LEXICON ? `<lexicon uri="${process.env.REACT_APP_TTS_LEXICON}"/>` : "")
                 content = content + `${context.ttsAgenda}</voice></speak>`
                 console.debug(content)
                 const utterance = new context.ttsUtterance(content);
-                console.log("S>", context.ttsAgenda)
+                console.log("S>", context.ttsAgenda, content)
                 utterance.voice = context.voice
                 utterance.onend = () => send('ENDSPEECH')
                 context.tts.speak(utterance)
@@ -308,7 +323,22 @@ function App() {
                         send({ type: "STARTSPEECH" });
                     }
                 }
-
+                context.asrL2 = new SpeechRecognition()
+                context.asrL2.lang = 'en-US'
+                context.asrL2.continuous = true
+                context.asrL2.interimResults = true
+                context.asrL2.onresult = function(event: any) {
+                    var result = event.results[0]
+                    if (result.isFinal) {
+                        send({
+                            type: "ASRRESULT_L2", value:
+                                [{
+                                    "utterance": result[0].transcript,
+                                    "confidence": result[0].confidence
+                                }]
+                        })
+                    }
+                }
             })
         }
     });

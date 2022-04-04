@@ -18,7 +18,8 @@ T> Sorry, I didn't get that. What did you have for breakfast this morning?
 */
 
 
-import { MachineConfig, send, assign, Action } from "xstate";
+import { MachineConfig, send, Action } from "xstate";
+
 
 function say(text: string): Action<SDSContext, SDSEvent> {
     return send((_context: SDSContext) => ({ type: "SPEAK", value: text }))
@@ -44,15 +45,8 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             on: {
                 RECOGNISED: [
-                    {
-                        target: 'missingWord',
-                        cond: (context) => context.recResult[0].utterance in breakfastGrammar,
-                        actions: assign({ breakfast: (context) => breakfastGrammar[context.recResult[0].utterance] })
-                    },
-                    {
-                       target: 'categoryNotKnown'
-                    }
-                ]
+                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.includes("how do you say") }]
+                TIMEOUT: '..',
             },
             states: {
                 prompt: {
@@ -61,22 +55,8 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 },
                 ask: {
                     entry: send('LISTEN')
-                },
-                nomatch: {
-                    entry: say("Sorry, I didn't get that."),
-                    on: { ENDSPEECH: 'prompt'}
                 }
             }
-        },
-        missingWord: {
-            initial: 'prompt',
-            states: {
-                prompt: {
-                    entry: say("What did you have for breakfast this morning?"),
-                },
-                
-            }
-        },
-        categoryNotKnown: {}
+        }
     }
 })
