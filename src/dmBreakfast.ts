@@ -45,7 +45,7 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             on: {
                 RECOGNISED: [
-                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.includes("how do you say") }]
+                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.includes("how do you say") }],
                 TIMEOUT: '..',
             },
             states: {
