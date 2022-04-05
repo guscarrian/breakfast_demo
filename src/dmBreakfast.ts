@@ -2,7 +2,7 @@
 EXAMPLE: SearchL2 + ProvL1 + AskL1
 
 T> What did you have for breakfast this morning?
-S> I had toast with butter and…
+S> I had a toast with butter and…
 CODE-SWITCHING BUTTON (L2 → L1)
 S> Mermelada (<trans: jam>)
 S> ¿Cómo se dice? (<trans: how do you say it?)
@@ -13,8 +13,8 @@ T> Mhm
 
 
 T> What did you have for breakfast this morning?
-S> I had toast with butter and…
-T> Sorry, I didn't get that. What did you have for breakfast this morning?
+S> I had a toast with butter and…
+T> 
 */
 
 
@@ -25,6 +25,12 @@ function say(text: string): Action<SDSContext, SDSEvent> {
     return send((_context: SDSContext) => ({ type: "SPEAK", value: text }))
 }
 
+
+const esDict: { [index: string]: string } = {
+    'mermelada': 'jam',
+    'mantequilla': 'butter',
+    'tostada': 'toast'
+}
 
 
 export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
@@ -45,12 +51,27 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             on: {
                 RECOGNISED: [
-                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.includes("how do you say") }],
+                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.includes("cómo se dice") }],
                 TIMEOUT: '..',
             },
             states: {
                 prompt: {
                     entry: say("What did you have for breakfast this morning?"),
+                    on: { ENDSPEECH: 'ask' }
+                },
+                ask: {
+                    entry: send('LISTEN')
+                }
+            }
+        },
+        helpWord: {
+            initial: 'prompt',
+            states: {
+                prompt: {
+                    entry: send((context: SDSContext) => ({
+                        type: "SPEAK",
+                        value: esDict[context.recResultL2[0].utterance.split(" ")[context.recResultL2[0].utterance.split(" ").length - 1].replace(/[?!]/, "")]
+                    })),
                     on: { ENDSPEECH: 'ask' }
                 },
                 ask: {
