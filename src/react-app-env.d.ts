@@ -38,10 +38,12 @@ interface SDSContext {
     azureAuthorizationToken: string;
     audioCtx: any;
 
+
     title: string;
     category: string;
     joke: string;
     breakfast: string;
+    unknownWord: string;
 }
 
 type SDSEvent =

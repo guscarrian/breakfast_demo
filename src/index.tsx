@@ -127,7 +127,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                     { delay: (context) => (1000 * (context.tdmPassivity || defaultPassivity)), id: 'timeout' }
                                 )],
                             on: {
-                                TIMEOUT: '#root.asrtts.idle',
+                                TIMEOUT: { target: '#root.asrtts.idle', actions: 'recStop' },
                                 STARTSPEECH: 'inprogress'
                             },
                             exit: cancel('timeout')
@@ -143,10 +143,28 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                         })],
                                     target: 'match'
                                 },
+                                ASRRESULT_L2: {
+                                    actions: ['recLogResultL2',
+                                        assign((_context, event) => {
+                                            return {
+                                                recResultL2: event.value
+                                            }
+                                        })],
+                                    target: 'match'
+                                },
                             }
                         },
                         match: {
                             on: {
+                                ASRRESULT: {
+                                    actions: ['recLogResult',
+                                        assign((_context, event) => {
+                                            return {
+                                                recResult: event.value
+                                            }
+                                        })],
+                                    target: 'matchmatch'
+                                },
                                 ASRRESULT_L2: {
                                     actions: ['recLogResultL2',
                                         assign((_context, event) => {
@@ -156,6 +174,7 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                         })],
                                     target: 'matchmatch'
                                 },
+
                             },
                             exit: 'recStop',
                         },
@@ -186,11 +205,11 @@ const machine = Machine<SDSContext, any, SDSEvent>({
         actions: {
             recLogResult: (context: SDSContext) => {
                 /* context.recResult = event.recResult; */
-                console.log('U>', context.recResult[0]["utterance"], context.recResult[0]["confidence"]);
+                console.log('U>', context.asr.lang, context.recResult[0]["utterance"], context.recResult[0]["confidence"]);
             },
             recLogResultL2: (context: SDSContext) => {
                 /* context.recResult = event.recResult; */
-                console.log('U>', context.recResultL2[0]["utterance"], context.recResultL2[0]["confidence"]);
+                console.log('U>', context.asrL2.lang, context.recResultL2[0]["utterance"], context.recResultL2[0]["confidence"]);
             },
             logIntent: (context: SDSContext) => {
                 /* context.nluData = event.data */
@@ -324,7 +343,7 @@ function App() {
                     }
                 }
                 context.asrL2 = new SpeechRecognition()
-                context.asrL2.lang = 'en-US'
+                context.asrL2.lang = 'es-ES'
                 context.asrL2.continuous = true
                 context.asrL2.interimResults = true
                 context.asrL2.onresult = function(event: any) {
@@ -337,6 +356,8 @@ function App() {
                                     "confidence": result[0].confidence
                                 }]
                         })
+                    } else {
+                        send({ type: "STARTSPEECH" });
                     }
                 }
             })

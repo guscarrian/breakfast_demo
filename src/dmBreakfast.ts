@@ -6,10 +6,10 @@ S> I had a toast with butter and…
 CODE-SWITCHING BUTTON (L2 → L1)
 S> Mermelada (<trans: jam>)
 S> ¿Cómo se dice? (<trans: how do you say it?)
-CODE-SWITCHING BUTTON (L1 → L2)??
 T> Jam
 S> Jam
-T> Mhm
+T> Jam
+
 
 
 T> What did you have for breakfast this morning?
@@ -18,7 +18,9 @@ T>
 */
 
 
-import { MachineConfig, send, Action } from "xstate";
+import { MachineConfig, send, assign, Action } from "xstate";
+
+
 
 
 function say(text: string): Action<SDSContext, SDSEvent> {
@@ -27,8 +29,8 @@ function say(text: string): Action<SDSContext, SDSEvent> {
 
 
 const esDict: { [index: string]: string } = {
-    'mermelada': 'jam',
-    'mantequilla': 'butter',
+    'mermelada': 'jam.',
+    'mantequilla': 'butter.',
     'tostada': 'toast'
 }
 
@@ -51,7 +53,8 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             on: {
                 RECOGNISED: [
-                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.includes("cómo se dice") }],
+                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.toLowerCase().includes("cómo se dice") },
+                    { target: 'unrelated' }],
                 TIMEOUT: '..',
             },
             states: {
@@ -68,14 +71,47 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             states: {
                 prompt: {
-                    entry: send((context: SDSContext) => ({
+                    entry: [
+                        assign((context, event) => { return { unknownWord: esDict[context.recResultL2[0].utterance.split(" ")[context.recResultL2[0].utterance.split(" ").length - 1].replace(/[?!]/, "")] } }),
+                        send((context: SDSContext) => ({
                         type: "SPEAK",
-                        value: esDict[context.recResultL2[0].utterance.split(" ")[context.recResultL2[0].utterance.split(" ").length - 1].replace(/[?!]/, "")]
-                    })),
-                    on: { ENDSPEECH: 'ask' }
+                        value: context.unknownWord
+                    }))],
+                    on: { ENDSPEECH: 'test' }
                 },
-                ask: {
-                    entry: send('LISTEN')
+                test: {
+                    entry: send('LISTEN'),
+                    on: { RECOGNISED: 
+                        [
+                        {target: 'ack', cond: (context) => context.unknownWord === context.recResult[0].utterance.toLowerCase()},
+                        {target: 'provl2'}
+                    ] 
+                }
+                },
+                ack: {
+                    entry: say("That's right!"),
+                    on: { ENDSPEECH: '#root.dm.welcome' }
+                },
+                provl2: {
+                    entry: [
+                        send((context: SDSContext) => ({
+                        type: "SPEAK",
+                        value: context.unknownWord
+                    }))],
+                    on: { ENDSPEECH: 'test' }
+                }
+
+            }
+        },
+        unrelated: {
+            initial: 'prompt',
+            states: {
+                prompt: {
+                    entry: say("Uh-huh"),
+                    on: { ENDSPEECH: 'unrelated' }
+                },
+                unrelated: {
+                    always: '#root.dm.welcome'
                 }
             }
         }
