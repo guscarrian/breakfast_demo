@@ -1,9 +1,23 @@
 /*
+(convered)
+EXAMPLE: SearchL2 + AskL1 + ProvL1
+
+T> What did you have for breakfast this morning?
+S> I had a toast with butter and…
+S> ¿Cómo se dice 'mermelada'? (<trans: how do you say jam?)
+T> Jam
+S> Jam
+(it repeats until S pronounces the word 'jam' correctly)
+T> Uh-huh
+
+
+
+
+(not convered so far)
 EXAMPLE: SearchL2 + ProvL1 + AskL1
 
 T> What did you have for breakfast this morning?
 S> I had a toast with butter and…
-CODE-SWITCHING BUTTON (L2 → L1)
 S> Mermelada (<trans: jam>)
 S> ¿Cómo se dice? (<trans: how do you say it?)
 T> Jam
@@ -31,7 +45,13 @@ function say(text: string): Action<SDSContext, SDSEvent> {
 const esDict: { [index: string]: string } = {
     'mermelada': 'jam.',
     'mantequilla': 'butter.',
-    'tostada': 'toast'
+    'tostada': 'toast.',
+    'cereales': 'cereals.',
+    'leche': 'milk.',
+    'café': 'coffee.',
+    'zumo': 'juice.',
+    'queso': 'cheese.'
+
 }
 
 
@@ -84,15 +104,15 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     on: { RECOGNISED: 
                         [
                         {target: 'ack', cond: (context) => context.unknownWord === context.recResult[0].utterance.toLowerCase()},
-                        {target: 'provl2'}
+                        {target: 'provL2'}
                     ] 
                 }
                 },
                 ack: {
-                    entry: say("That's right!"),
+                    entry: say("Uh-huh"),
                     on: { ENDSPEECH: '#root.dm.welcome' }
                 },
-                provl2: {
+                provL2: {
                     entry: [
                         send((context: SDSContext) => ({
                         type: "SPEAK",
@@ -107,7 +127,7 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             states: {
                 prompt: {
-                    entry: say("Uh-huh"),
+                    entry: say("Yummy!"),
                     on: { ENDSPEECH: 'unrelated' }
                 },
                 unrelated: {

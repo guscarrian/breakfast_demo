@@ -174,7 +174,6 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                         })],
                                     target: 'matchmatch'
                                 },
-
                             },
                             exit: 'recStop',
                         },
