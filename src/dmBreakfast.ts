@@ -4,14 +4,26 @@ EXAMPLE: SearchL2 + AskL1 + ProvL1
 
 T> What did you have for breakfast this morning?
 S> I had a toast with butter and…
-S> ¿Cómo se dice 'mermelada'? (<trans: how do you say jam?)
+S> ¿Cómo se dice 'mermelada'? (<trans: how do you say 'jam'?)
 T> Jam
 S> Jam
 (it repeats until S pronounces the word 'jam' correctly)
 T> Uh-huh
+T> Did you have anything else?
 
+1.
+S> Yes, I had a juice too
+T> Yummy!
+T> Did you... (repeats until negative answer)
+T> Ok, good breakfast!
+STOP --> init
 
+2.
+S> No.
+T> Ok, good breakfast!
+STOP --> init
 
+------------------------------------
 
 (not convered so far)
 EXAMPLE: SearchL2 + ProvL1 + AskL1
