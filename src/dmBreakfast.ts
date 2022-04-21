@@ -50,9 +50,21 @@ const esDict: { [index: string]: string } = {
     'leche': 'milk.',
     'café': 'coffee.',
     'zumo': 'juice.',
-    'queso': 'cheese.'
+    'queso': 'cheese.',
+    'tortitas': 'pancakes.',
+    'jamón': 'ham.',
+    'yogur': 'yogurt.',
+    'aceite': 'olive oil',
+    'fruta': 'fruit.',
+    'tomate': 'tomato.'
 
 }
+
+
+let askL1 = ["cómo se dice","cómo es"]
+//indask --> no sé cómo se dice
+
+
 
 
 export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
@@ -74,6 +86,7 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             on: {
                 RECOGNISED: [
                     { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.toLowerCase().includes("cómo se dice") },
+                    //{ target: 'helpWord', cond: (context) => askL1.map((x) => context.recResultL2[0].utterance.toLowerCase().includes(x)).reduce((a,b) => a||b) },
                     { target: 'unrelated' }],
                 TIMEOUT: '..',
             },
@@ -110,7 +123,7 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                 },
                 ack: {
                     entry: say("Uh-huh"),
-                    on: { ENDSPEECH: '#root.dm.welcome' }
+                    on: { ENDSPEECH: '#root.dm.secondQuestion' }
                 },
                 provL2: {
                     entry: [
@@ -131,9 +144,33 @@ export const dmMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     on: { ENDSPEECH: 'unrelated' }
                 },
                 unrelated: {
-                    always: '#root.dm.welcome'
+                    always: '#root.dm.secondQuestion'
                 }
             }
-        }
+        },
+        secondQuestion: {
+            initial: 'prompt',
+            on: {
+                RECOGNISED: [
+                    { target: 'stop', cond: (context) => context.recResult[0].utterance === 'No.' },
+                    { target: 'helpWord', cond: (context) => context.recResultL2[0].utterance.toLowerCase().includes("cómo se dice") },
+                    { target: 'unrelated' }],
+                TIMEOUT: '..',
+            },
+            states: {
+                prompt: {
+                    entry: say("Did you have anything else?"),
+                    on: { ENDSPEECH: 'ask' }
+                },
+                ask: {
+                    entry: send('LISTEN')
+                }
+            }
+        },
+        stop: {
+            entry: say("Ok, good breakfast!"),
+            always: 'init'
+        },
     }
 })
+
