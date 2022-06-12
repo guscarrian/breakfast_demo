@@ -43,6 +43,8 @@ S> I had a toast with butter and…
 T> 
 */
 
+// maybe we can have helpword_1 for como se dice and helpword_2 for any other way of asking??
+
 
 import { MachineConfig, send, assign, Action } from "xstate";
 
